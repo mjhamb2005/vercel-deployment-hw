@@ -1,10 +1,7 @@
 export default function Home() {
   return (
-    <main style={{ padding: "2rem" }}>
-      <h1>Vercel Deployment HW</h1>
-      <p>
-        This is my Next.js app deployed to Vercel using GitHub.
-      </p>
+    <main className="flex min-h-screen flex-col items-center justify-center p-24">
+      <h1 className="text-4xl font-bold">Hello World</h1>
     </main>
   );
 }
