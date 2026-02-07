@@ -17,6 +17,12 @@ export default function Home() {
             Captions List
           </div>
         </Link>
+
+        <Link href="/protected">
+          <div className="text-center text-lg hover:text-gray-300 transition cursor-pointer">
+            Protected Page 🔒
+          </div>
+        </Link>
       </div>
     </div>
   )
