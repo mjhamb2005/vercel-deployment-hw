@@ -28,7 +28,7 @@ export default function CaptionsList() {
       .from('captions')
       .select(`*, images(url)`)
       .not('image_id', 'is', null)
-      .limit(20)
+      .limit(50)
 
     if (error) {
       console.error('Error fetching captions:', error)
