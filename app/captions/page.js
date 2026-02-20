@@ -1,6 +1,6 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useEffect, useState, useMemo } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
 
 export default function CaptionsList() {
   const [captions, setCaptions] = useState([])
@@ -8,6 +8,11 @@ export default function CaptionsList() {
   const [user, setUser] = useState(null)
   const [votes, setVotes] = useState({})
   const [submitting, setSubmitting] = useState(null)
+
+  const supabase = useMemo(() => createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ), [])
 
   useEffect(() => {
     fetchCaptions()
@@ -75,7 +80,8 @@ export default function CaptionsList() {
       })
 
     if (error) {
-      console.error('Vote error:', error)
+      console.error('Vote error:', JSON.stringify(error))
+      alert('Error: ' + JSON.stringify(error))
     } else {
       setVotes(prev => ({ ...prev, [captionId]: voteValue }))
     }
