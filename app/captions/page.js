@@ -77,11 +77,11 @@ export default function CaptionsList() {
         caption_id: captionId,
         profile_id: user.id,
         vote_value: voteValue,
+        created_datetime_utc: new Date().toISOString(),
       })
 
     if (error) {
       console.error('Vote error:', JSON.stringify(error))
-      alert('Error: ' + JSON.stringify(error))
     } else {
       setVotes(prev => ({ ...prev, [captionId]: voteValue }))
     }
