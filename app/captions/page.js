@@ -35,7 +35,8 @@ export default function CaptionsList() {
       .from('captions')
       .select('*, images(url)')
       .not('image_id', 'is', null)
-      .limit(20)
+      .order('created_at', { ascending: false })
+      .limit(50)
 
     if (!error) setCaptions(data.filter(c => c.images?.url))
     setLoading(false)
