@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createBrowserClient } from '@supabase/ssr'
 
 export default function CaptionsList() {
   const [captions, setCaptions] = useState([])
@@ -9,15 +9,22 @@ export default function CaptionsList() {
   const [votes, setVotes] = useState({})
   const [submitting, setSubmitting] = useState(null)
 
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+
   useEffect(() => {
     fetchCaptions()
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
+      if (session?.user) fetchMyVotes(session.user.id)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (session?.user) fetchMyVotes(session.user.id)
     })
 
     return () => subscription.unsubscribe()
@@ -26,26 +33,39 @@ export default function CaptionsList() {
   async function fetchCaptions() {
     const { data, error } = await supabase
       .from('captions')
-      .select(`*, images(url)`)
+      .select('*, images(url)')
       .not('image_id', 'is', null)
-      .limit(50)
+      .limit(20)
 
-    if (error) {
-      console.error('Error fetching captions:', error)
-    } else {
-      setCaptions(data.filter(c => c.images?.url))
-    }
+    if (!error) setCaptions(data.filter(c => c.images?.url))
     setLoading(false)
   }
 
-  async function submitVote(captionId, rating) {
+  async function fetchMyVotes(userId) {
+    const { data, error } = await supabase
+      .from('caption_votes')
+      .select('caption_id, vote_value')
+      .eq('profile_id', userId)
+
+    if (!error && data) {
+      const voteMap = {}
+      data.forEach(v => { voteMap[v.caption_id] = v.vote_value })
+      setVotes(voteMap)
+    }
+  }
+
+  async function signIn() {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/captions`,
+      },
+    })
+  }
+
+  async function submitVote(captionId, voteValue) {
     if (!user) {
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
+      await signIn()
       return
     }
 
@@ -56,69 +76,53 @@ export default function CaptionsList() {
       .insert({
         caption_id: captionId,
         profile_id: user.id,
-        vote_value: rating,
-        created_datetime_utc: new Date().toISOString(),
+        vote_value: voteValue,
       })
 
     if (error) {
-      console.error('Error submitting vote:', error)
-      alert('Failed to submit vote: ' + JSON.stringify(error))
+      console.error('Vote error:', error)
     } else {
-      setVotes(prev => ({ ...prev, [captionId]: rating }))
+      setVotes(prev => ({ ...prev, [captionId]: voteValue }))
     }
 
     setSubmitting(null)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
-        <p className="text-2xl font-semibold text-gray-600">Loading captions...</p>
-      </div>
-    )
-  }
+  if (loading) return (
+    <div className="flex justify-center items-center min-h-screen text-gray-500">
+      Loading...
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-50 py-10 px-4">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">Caption Rater</h1>
 
-        <h1 className="text-5xl font-bold text-center mb-2 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-          Crackd Captions
-        </h1>
-        <p className="text-center text-gray-500 mb-4 text-lg">Rate the funniness!</p>
-
-        <div className="text-center mb-10">
-          {user ? (
-            <p className="text-green-600 font-medium">✅ Logged in as {user.email}</p>
-          ) : (
-            <p className="text-amber-600 font-medium">
-              ⚠️ You must{' '}
-              <button
-                onClick={() =>
-                  supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { redirectTo: `${window.location.origin}/auth/callback` },
-                  })
-                }
-                className="underline font-bold hover:text-amber-800"
-              >
-                sign in with Google
-              </button>{' '}
-              to rate captions.
-            </p>
-          )}
-        </div>
+        {!user ? (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-6 py-4 text-center mb-8">
+            <p className="font-medium mb-3">Sign in to upvote or downvote captions.</p>
+            <button
+              onClick={signIn}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-5 py-2 rounded-lg transition"
+            >
+              Sign in with Google
+            </button>
+          </div>
+        ) : (
+          <p className="text-center text-green-600 font-medium mb-8">
+            ✅ Logged in as {user.email}
+          </p>
+        )}
 
         <div className="space-y-8">
           {captions.map((caption) => {
             const myVote = votes[caption.id]
+            const hasVoted = myVote !== undefined
             const isSubmitting = submitting === caption.id
 
             return (
-              <div
-                key={caption.id}
-                className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300"
-              >
+              <div key={caption.id} className="bg-white rounded-2xl shadow-lg overflow-hidden">
                 <div className="bg-gray-100 flex justify-center">
                   <img
                     src={caption.images.url}
@@ -132,34 +136,44 @@ export default function CaptionsList() {
                     {caption.content}
                   </p>
 
-                  <div>
-                    <p className="text-sm text-gray-500 mb-2 font-medium">
-                      {myVote ? `Your rating: ${myVote}/5` : 'Rate this caption:'}
-                    </p>
-                    <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          onClick={() => submitVote(caption.id, star)}
-                          disabled={isSubmitting || !!myVote}
-                          className={`text-3xl transition-transform hover:scale-125 disabled:cursor-not-allowed ${
-                            myVote
-                              ? star <= myVote
-                                ? 'opacity-100'
-                                : 'opacity-30'
-                              : 'opacity-70 hover:opacity-100'
-                          }`}
-                        >
-                          ⭐
-                        </button>
-                      ))}
-                      {isSubmitting && (
-                        <span className="text-sm text-gray-400 self-center ml-2">Saving...</span>
-                      )}
-                      {myVote && (
-                        <span className="text-sm text-green-500 self-center ml-2 font-medium">Saved!</span>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => submitVote(caption.id, 5)}
+                      disabled={isSubmitting || hasVoted}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-lg font-semibold transition
+                        ${myVote === 5
+                          ? 'bg-green-500 text-white'
+                          : hasVoted
+                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                          : 'bg-green-100 text-green-600 hover:bg-green-500 hover:text-white'
+                        }`}
+                    >
+                      👍 Upvote
+                    </button>
+
+                    <button
+                      onClick={() => submitVote(caption.id, 1)}
+                      disabled={isSubmitting || hasVoted}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-lg font-semibold transition
+                        ${myVote === 1
+                          ? 'bg-red-500 text-white'
+                          : hasVoted
+                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                          : 'bg-red-100 text-red-500 hover:bg-red-500 hover:text-white'
+                        }`}
+                    >
+                      👎 Downvote
+                    </button>
+
+                    {isSubmitting && (
+                      <span className="text-gray-400 text-sm">Saving...</span>
+                    )}
+                    {myVote === 5 && (
+                      <span className="text-green-600 text-sm font-medium">✓ Upvoted!</span>
+                    )}
+                    {myVote === 1 && (
+                      <span className="text-red-500 text-sm font-medium">✓ Downvoted!</span>
+                    )}
                   </div>
                 </div>
               </div>
