@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { supabase } from '@/lib/supabase'
 
 export default function CaptionsList() {
   const [captions, setCaptions] = useState([])
@@ -8,11 +8,6 @@ export default function CaptionsList() {
   const [user, setUser] = useState(null)
   const [votes, setVotes] = useState({})
   const [submitting, setSubmitting] = useState(null)
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
 
   useEffect(() => {
     fetchCaptions()
@@ -58,7 +53,7 @@ export default function CaptionsList() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/captions`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     })
   }
@@ -138,10 +133,10 @@ export default function CaptionsList() {
 
                   <div className="flex items-center gap-4">
                     <button
-                      onClick={() => submitVote(caption.id, 5)}
+                      onClick={() => submitVote(caption.id, 1)}
                       disabled={isSubmitting || hasVoted}
                       className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-lg font-semibold transition
-                        ${myVote === 5
+                        ${myVote === 1
                           ? 'bg-green-500 text-white'
                           : hasVoted
                           ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
@@ -152,10 +147,10 @@ export default function CaptionsList() {
                     </button>
 
                     <button
-                      onClick={() => submitVote(caption.id, 1)}
+                      onClick={() => submitVote(caption.id, -1)}
                       disabled={isSubmitting || hasVoted}
                       className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-lg font-semibold transition
-                        ${myVote === 1
+                        ${myVote === -1
                           ? 'bg-red-500 text-white'
                           : hasVoted
                           ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
@@ -168,10 +163,10 @@ export default function CaptionsList() {
                     {isSubmitting && (
                       <span className="text-gray-400 text-sm">Saving...</span>
                     )}
-                    {myVote === 5 && (
+                    {myVote === 1 && (
                       <span className="text-green-600 text-sm font-medium">✓ Upvoted!</span>
                     )}
-                    {myVote === 1 && (
+                    {myVote === -1 && (
                       <span className="text-red-500 text-sm font-medium">✓ Downvoted!</span>
                     )}
                   </div>
