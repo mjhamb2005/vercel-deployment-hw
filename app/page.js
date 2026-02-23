@@ -26,7 +26,7 @@ export default function HomePage() {
   async function signIn() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
   }
 
@@ -414,7 +414,6 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Hello World Section */}
         <div className="hello-world">
           <div>
             <p className="hw-title">Hello, World! 👋</p>
