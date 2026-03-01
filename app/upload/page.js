@@ -250,7 +250,7 @@ export default function UploadPage() {
               <div className="user-tag"><span className="user-dot" />{user.email}</div>
 
               <div className="upload-area" onClick={() => document.getElementById('fi').click()}>
-                <input id="fi" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                <input id="fi" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic"
                   onChange={handleFileChange} style={{ display: 'none' }} />
                 {preview ? (
                   <img src={preview} alt="Preview" style={{ maxHeight: '320px', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px', display: 'block', margin: '0 auto' }} />
@@ -258,7 +258,7 @@ export default function UploadPage() {
                   <>
                     <div className="upload-icon">📸</div>
                     <p className="upload-hint">click to select an image</p>
-                    <p className="upload-types">jpg · png · webp · gif</p>
+                    <p className="upload-types">jpg · png · webp · gif · heic</p>
                   </>
                 )}
               </div>
