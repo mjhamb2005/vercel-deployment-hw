@@ -252,7 +252,13 @@ export default function UploadPage() {
               <div className="upload-area" onClick={() => document.getElementById('fi').click()}>
                 <input id="fi" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic"
                   onChange={handleFileChange} style={{ display: 'none' }} />
-                {preview ? (
+                {preview === 'heic' ? (
+                  <div style={{ padding: '24px 0' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>📷</div>
+                    <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', marginBottom: '4px' }}>{file?.name}</p>
+                    <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px', letterSpacing: '0.1em' }}>HEIC · READY TO UPLOAD</p>
+                  </div>
+                ) : preview ? (
                   <img src={preview} alt="Preview" style={{ maxHeight: '320px', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px', display: 'block', margin: '0 auto' }} />
                 ) : (
                   <>
